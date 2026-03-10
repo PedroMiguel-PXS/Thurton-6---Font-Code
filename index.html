@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Thurton Browser</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070a0f;
+      --surface: #0d1117;
+      --border: #1c2333;
+      --accent: #00e5ff;
+      --accent2: #7c4dff;
+      --accent3: #00ff88;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --glow: 0 0 40px rgba(0,229,255,0.15);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.4;
+    }
+
+    /* ── GRID BACKGROUND ── */
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 2.5rem;
+      background: rgba(7,10,15,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 900;
+      font-size: 1.4rem;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+      text-shadow: 0 0 20px rgba(0,229,255,0.5);
+    }
+
+    .nav-logo span { color: var(--text); }
+
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--accent); }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 7rem 2rem 4rem;
+      overflow: hidden;
+    }
+
+    .hero-glow {
+      position: absolute;
+      top: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 500px;
+      background: radial-gradient(ellipse, rgba(0,229,255,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-glow2 {
+      position: absolute;
+      top: 30%;
+      left: 30%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(ellipse, rgba(124,77,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(0,229,255,0.07);
+      border: 1px solid rgba(0,229,255,0.2);
+      border-radius: 999px;
+      padding: 0.35rem 1rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 2rem;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .badge-dot {
+      width: 6px; height: 6px;
+      background: var(--accent3);
+      border-radius: 50%;
+      animation: blink 1.5s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 900;
+      font-size: clamp(3.5rem, 10vw, 8rem);
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+      animation: fadeUp 0.7s 0.1s ease both;
+    }
+
+    h1 .line1 { display: block; color: var(--text); }
+    h1 .line2 {
+      display: block;
+      color: transparent;
+      -webkit-text-stroke: 1.5px rgba(0,229,255,0.5);
+    }
+    h1 .accent-word {
+      color: var(--accent);
+      text-shadow: 0 0 60px rgba(0,229,255,0.4);
+    }
+
+    .hero-sub {
+      max-width: 560px;
+      margin: 2rem auto 0;
+      font-size: 0.9rem;
+      line-height: 1.8;
+      color: var(--muted);
+      animation: fadeUp 0.7s 0.2s ease both;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-top: 3rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeUp 0.7s 0.3s ease both;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: var(--accent);
+      color: #000;
+      padding: 0.85rem 2rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+      transition: all 0.2s;
+      box-shadow: 0 0 30px rgba(0,229,255,0.3);
+    }
+    .btn-primary:hover {
+      background: #fff;
+      box-shadow: 0 0 50px rgba(0,229,255,0.5);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: transparent;
+      color: var(--text);
+      padding: 0.85rem 2rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    /* ── BROWSER MOCKUP ── */
+    .mockup-wrap {
+      position: relative;
+      z-index: 1;
+      margin: 5rem auto 0;
+      max-width: 860px;
+      padding: 0 2rem;
+      animation: fadeUp 0.8s 0.4s ease both;
+    }
+
+    .mockup {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.6), var(--glow);
+    }
+
+    .mockup-bar {
+      background: #111827;
+      padding: 0.75rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dots { display: flex; gap: 0.4rem; }
+    .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    .dot.r { background: #ff5f57; }
+    .dot.y { background: #ffbd2e; }
+    .dot.g { background: #28ca42; }
+
+    .url-bar {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.3rem 0.8rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .url-bar .lock { color: var(--accent3); font-size: 0.65rem; }
+
+    .mockup-content {
+      padding: 2rem;
+      font-size: 0.78rem;
+      line-height: 1.9;
+    }
+
+    .mockup-content .tag { color: #7c4dff; }
+    .mockup-content .attr { color: #00e5ff; }
+    .mockup-content .val { color: #00ff88; }
+    .mockup-content .cmt { color: #445566; }
+
+    /* ── SECTION ── */
+    section {
+      position: relative;
+      z-index: 1;
+      padding: 6rem 2rem;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.8rem;
+    }
+
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2rem, 4vw, 3rem);
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+    }
+
+    .section-desc {
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.8;
+      max-width: 500px;
+    }
+
+    /* ── FEATURES ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5px;
+      margin-top: 4rem;
+      background: var(--border);
+    }
+
+    .feature-card {
+      background: var(--bg);
+      padding: 2.5rem 2rem;
+      transition: background 0.2s;
+    }
+    .feature-card:hover { background: var(--surface); }
+
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 1.2rem;
+      display: block;
+    }
+
+    .feature-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .feature-desc {
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.8;
+    }
+
+    /* ── STATS ── */
+    .stats-row {
+      display: flex;
+      gap: 0;
+      flex-wrap: wrap;
+      border: 1px solid var(--border);
+      margin-top: 4rem;
+    }
+
+    .stat {
+      flex: 1;
+      min-width: 150px;
+      padding: 2rem 2.5rem;
+      border-right: 1px solid var(--border);
+      text-align: center;
+    }
+    .stat:last-child { border-right: none; }
+
+    .stat-num {
+      font-family: 'Syne', sans-serif;
+      font-weight: 900;
+      font-size: 2.5rem;
+      color: var(--accent);
+      text-shadow: 0 0 30px rgba(0,229,255,0.3);
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 0.3rem;
+    }
+
+    /* ── HOW TO USE ── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 2rem;
+      margin-top: 3rem;
+    }
+
+    .step {
+      position: relative;
+      padding: 2rem;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .step-num {
+      font-family: 'Syne', sans-serif;
+      font-weight: 900;
+      font-size: 4rem;
+      color: transparent;
+      -webkit-text-stroke: 1px var(--border);
+      line-height: 1;
+      margin-bottom: 1rem;
+    }
+
+    .step-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .step-desc {
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.7;
+    }
+
+    .code-block {
+      background: #0a0e14;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      padding: 1rem 1.2rem;
+      font-size: 0.75rem;
+      color: var(--accent3);
+      margin-top: 0.8rem;
+      overflow-x: auto;
+    }
+
+    /* ── CTA ── */
+    .cta-section {
+      text-align: center;
+      padding: 8rem 2rem;
+    }
+
+    .cta-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(ellipse, rgba(124,77,255,0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-section h2 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 900;
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      letter-spacing: -0.04em;
+      margin-bottom: 1.5rem;
+    }
+
+    .cta-section p {
+      color: var(--muted);
+      font-size: 0.88rem;
+      margin-bottom: 3rem;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 900;
+      color: var(--accent);
+    }
+
+    .footer-copy {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--accent); }
+
+    /* ── DIVIDER ── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0 2rem;
+    }
+
+    /* ── CONTAINER ── */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* scroll reveal */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { display: none; }
+      .stats-row { flex-direction: column; }
+      .stat { border-right: none; border-bottom: 1px solid var(--border); }
+      footer { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Thurton<span>.</span></div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#usage">Usage</a>
+    <a href="https://github.com/PedroMiguel-PXS/Thurton-6---Font-Code" target="_blank">GitHub</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-glow2"></div>
+
+  <div class="badge">
+    <span class="badge-dot"></span>
+    Open Source · JavaScript Engine
+  </div>
+
+  <h1>
+    <span class="line1">THE BROWSER</span>
+    <span class="line2">YOU <span class="accent-word">BUILD.</span></span>
+  </h1>
+
+  <p class="hero-sub">
+    Thurton is an open-source web rendering engine written in JavaScript —
+    built for transparency, speed, and modularity. No black boxes. Just code.
+  </p>
+
+  <div class="hero-buttons">
+    <a href="https://github.com/PedroMiguel-PXS/Thurton-6---Font-Code/archive/refs/heads/main.zip" class="btn-primary">
+      ↓ Download Source
+    </a>
+    <a href="https://github.com/PedroMiguel-PXS/Thurton-6---Font-Code" target="_blank" class="btn-secondary">
+      ★ View on GitHub
+    </a>
+  </div>
+
+  <!-- BROWSER MOCKUP -->
+  <div class="mockup-wrap">
+    <div class="mockup">
+      <div class="mockup-bar">
+        <div class="dots">
+          <div class="dot r"></div>
+          <div class="dot y"></div>
+          <div class="dot g"></div>
+        </div>
+        <div class="url-bar">
+          <span class="lock">🔒</span>
+          thurton://engine/render
+        </div>
+      </div>
+      <div class="mockup-content">
+        <div><span class="cmt">// Thurton rendering pipeline</span></div>
+        <div><span class="tag">const</span> <span class="attr">engine</span> = <span class="tag">new</span> <span class="val">ThurtonEngine</span>({</div>
+        <div>&nbsp;&nbsp;<span class="attr">renderer</span>: <span class="val">'font-code'</span>,</div>
+        <div>&nbsp;&nbsp;<span class="attr">version</span>: <span class="val">'6.0'</span>,</div>
+        <div>&nbsp;&nbsp;<span class="attr">mode</span>: <span class="val">'transparent'</span>,</div>
+        <div>});</div>
+        <br>
+        <div><span class="attr">engine</span>.<span class="val">render</span>(<span class="tag">document</span>.<span class="attr">body</span>);</div>
+        <div><span class="cmt">// ✓ Page painted in 12ms</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- STATS -->
+<section>
+  <div class="container">
+    <div class="stats-row reveal">
+      <div class="stat">
+        <span class="stat-num">JS</span>
+        <div class="stat-label">Pure JavaScript</div>
+      </div>
+      <div class="stat">
+        <span class="stat-num">MIT</span>
+        <div class="stat-label">Open License</div>
+      </div>
+      <div class="stat">
+        <span class="stat-num">v6</span>
+        <div class="stat-label">Latest Version</div>
+      </div>
+      <div class="stat">
+        <span class="stat-num">∞</span>
+        <div class="stat-label">Extensible</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">// Features</div>
+      <h2 class="section-title">Built different.<br>By design.</h2>
+      <p class="section-desc">
+        Unlike traditional browsers, Thurton exposes its internals so developers can
+        understand, modify, and extend every layer of the rendering pipeline.
+      </p>
+    </div>
+
+    <div class="features-grid reveal">
+      <div class="feature-card">
+        <span class="feature-icon">🔬</span>
+        <div class="feature-title">Transparent Engine</div>
+        <p class="feature-desc">
+          Every step of HTML parsing, style computation, and layout is visible.
+          No hidden magic — just readable JavaScript you can audit.
+        </p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">⚡</span>
+        <div class="feature-title">Font-Code Renderer</div>
+        <p class="feature-desc">
+          Version 6 introduces the Font-Code rendering system, a novel approach to
+          text layout that treats typography as a first-class citizen.
+        </p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🧩</span>
+        <div class="feature-title">Modular Architecture</div>
+        <p class="feature-desc">
+          Swap out components, extend the parser, override the layout engine —
+          Thurton is built to be taken apart and rebuilt.
+        </p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🌐</span>
+        <div class="feature-title">Zero Dependencies</div>
+        <p class="feature-desc">
+          Runs in any modern browser with JavaScript support. No Node.js required
+          to launch, no heavy runtimes, no vendor lock-in.
+        </p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🐧</span>
+        <div class="feature-title">Linux First</div>
+        <p class="feature-desc">
+          Designed with Linux in mind. Works flawlessly on Debian, Ubuntu, Arch,
+          and any distro that ships a modern browser.
+        </p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🔓</span>
+        <div class="feature-title">MIT Licensed</div>
+        <p class="feature-desc">
+          Use it, fork it, sell it. The MIT license gives you full freedom to
+          integrate Thurton into any project, personal or commercial.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- USAGE -->
+<section id="usage">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">// Get Started</div>
+      <h2 class="section-title">Up and running<br>in 3 steps.</h2>
+    </div>
+
+    <div class="steps reveal">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-title">Clone or Download</div>
+        <p class="step-desc">Get the source code from GitHub or download the zip directly.</p>
+        <div class="code-block">git clone https://github.com/<br>PedroMiguel-PXS/Thurton-6</div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-title">Extract & Open</div>
+        <p class="step-desc">No build step needed. Just open the project folder in your editor.</p>
+        <div class="code-block">unzip Thurton-6-main.zip<br>cd Thurton-6-main</div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-title">Launch Browser</div>
+        <p class="step-desc">Open <code>browser.html</code> in any modern web browser to run Thurton.</p>
+        <div class="code-block">xdg-open browser.html<br># or double-click the file</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- CTA -->
+<section class="cta-section" style="position:relative">
+  <div class="cta-glow"></div>
+  <div class="reveal">
+    <h2>Start building<br><span style="color:var(--accent)">your browser.</span></h2>
+    <p>Thurton is free, open, and waiting for you.</p>
+    <div class="hero-buttons" style="justify-content:center">
+      <a href="https://github.com/PedroMiguel-PXS/Thurton-6---Font-Code/archive/refs/heads/main.zip" class="btn-primary">
+        ↓ Download Now
+      </a>
+      <a href="https://github.com/PedroMiguel-PXS/Thurton-6---Font-Code" target="_blank" class="btn-secondary">
+        View Source →
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Thurton.</div>
+  <div class="footer-copy">© 2025 PedroMiguel-PXS · MIT License</div>
+  <div class="footer-links">
+    <a href="https://github.com/PedroMiguel-PXS/Thurton-6---Font-Code" target="_blank">GitHub</a>
+    <a href="https://github.com/PedroMiguel-PXS/Thurton-6---Font-Code/blob/main/LICENSE" target="_blank">License</a>
+    <a href="https://github.com/PedroMiguel-PXS/Thurton-6---Font-Code/archive/refs/heads/main.zip">Download</a>
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Subtle cursor glow
+  const glow = document.createElement('div');
+  glow.style.cssText = `
+    position:fixed; width:300px; height:300px;
+    background:radial-gradient(circle, rgba(0,229,255,0.04) 0%, transparent 70%);
+    border-radius:50%; pointer-events:none; z-index:998;
+    transform:translate(-50%,-50%); transition:left 0.15s,top 0.15s;
+  `;
+  document.body.appendChild(glow);
+  document.addEventListener('mousemove', e => {
+    glow.style.left = e.clientX + 'px';
+    glow.style.top = e.clientY + 'px';
+  });
+</script>
+</body>
+</html>
